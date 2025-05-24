@@ -1,0 +1,1354 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>XML to HTML Converter</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            font-weight: 300;
+        }
+
+        .header p {
+            opacity: 0.9;
+            font-size: 1.1rem;
+        }
+
+        .main-content {
+            padding: 40px;
+        }
+
+        .upload-section {
+            margin-bottom: 30px;
+        }
+
+        .upload-area {
+            border: 3px dashed #667eea;
+            border-radius: 10px;
+            padding: 40px;
+            text-align: center;
+            background: #f8f9ff;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .upload-area:hover {
+            border-color: #764ba2;
+            background: #f0f2ff;
+            transform: translateY(-2px);
+        }
+
+        .upload-area.dragover {
+            border-color: #764ba2;
+            background: #e8ebff;
+            transform: scale(1.02);
+        }
+
+        .upload-icon {
+            font-size: 3rem;
+            color: #667eea;
+            margin-bottom: 20px;
+        }
+
+        .upload-text {
+            font-size: 1.2rem;
+            color: #666;
+            margin-bottom: 15px;
+        }
+
+        .upload-subtext {
+            color: #999;
+            font-size: 0.9rem;
+        }
+
+        #fileInput {
+            display: none;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 25px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin: 10px 5px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .file-list {
+            margin-top: 20px;
+        }
+
+        .file-item {
+            background: #f8f9ff;
+            border: 1px solid #e0e6ff;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.3s ease;
+        }
+
+        .file-item:hover {
+            background: #f0f2ff;
+            transform: translateX(5px);
+        }
+
+        .file-info {
+            display: flex;
+            align-items: center;
+        }
+
+        .file-icon {
+            font-size: 1.5rem;
+            margin-right: 15px;
+            color: #667eea;
+        }
+
+        .file-details h4 {
+            color: #333;
+            margin-bottom: 5px;
+        }
+
+        .file-details p {
+            color: #666;
+            font-size: 0.9rem;
+        }
+
+        .status {
+            padding: 5px 12px;
+            border-radius: 15px;
+            font-size: 0.8rem;
+            font-weight: bold;
+        }
+
+        .status.ready {
+            background: #e8f5e8;
+            color: #4caf50;
+        }
+
+        .status.converting {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .status.completed {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #e9ecef;
+            border-radius: 4px;
+            margin: 20px 0;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            transition: width 0.3s ease;
+            width: 0%;
+        }
+
+        .results-section {
+            margin-top: 30px;
+            padding-top: 30px;
+            border-top: 1px solid #eee;
+        }
+
+        .result-item {
+            background: #f8f9ff;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 15px;
+            border-left: 4px solid #667eea;
+        }
+
+        .result-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .result-title {
+            font-size: 1.2rem;
+            color: #333;
+            flex-grow: 1;
+            min-width: 200px;
+        }
+
+        .result-buttons {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .preview-container {
+            margin-top: 15px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            overflow: hidden;
+            background: white;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+
+        .preview-frame {
+            width: 100%;
+            height: 600px;
+            border: none;
+        }
+
+        .alert {
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .alert.error {
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+
+        .alert.info {
+            background: #d1ecf1;
+            border: 1px solid #bee5eb;
+            color: #0c5460;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .footer {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+            background: #f8f9ff;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>賞与保険料算出内訳書 変換ツール</h1>
+            <p>XMLファイルをA4横サイズの印刷可能なHTMLに変換</p>
+        </div>
+
+        <div class="main-content">
+            <div class="upload-section">
+                <div class="upload-area" id="uploadArea">
+                    <div class="upload-icon">📁</div>
+                    <div class="upload-text">ZIPファイルをドラッグ＆ドロップ</div>
+                    <div class="upload-subtext">または、クリックしてファイルを選択</div>
+                    <input type="file" id="fileInput" accept=".zip" multiple>
+                </div>
+                
+                <div class="file-list" id="fileList"></div>
+                
+                <div style="text-align: center; margin-top: 20px;">
+                    <button class="btn" id="convertBtn" disabled>変換開始</button>
+                    <button class="btn" id="clearBtn">クリア</button>
+                </div>
+                
+                <div class="progress-bar" id="progressBar" style="display: none;">
+                    <div class="progress-fill" id="progressFill"></div>
+                </div>
+            </div>
+
+            <div class="results-section" id="resultsSection" style="display: none;">
+                <h3>変換結果</h3>
+                <div id="results"></div>
+            </div>
+        </div>
+
+        <div class="footer">
+            <p>賞与保険料算出内訳書のZIPファイル（XMLとXSLTを含む）をA4横向きで印刷可能な形式に変換します</p>
+        </div>
+    </div>
+
+    <script>
+        class XMLToHTMLConverter {
+            constructor() {
+                this.files = [];
+                this.zipFiles = [];
+                this.initializeEventListeners();
+            }
+
+            initializeEventListeners() {
+                const uploadArea = document.getElementById('uploadArea');
+                const fileInput = document.getElementById('fileInput');
+                const convertBtn = document.getElementById('convertBtn');
+                const clearBtn = document.getElementById('clearBtn');
+
+                // ドラッグ＆ドロップ
+                uploadArea.addEventListener('click', () => fileInput.click());
+                uploadArea.addEventListener('dragover', (e) => {
+                    e.preventDefault();
+                    uploadArea.classList.add('dragover');
+                });
+                uploadArea.addEventListener('dragleave', () => {
+                    uploadArea.classList.remove('dragover');
+                });
+                uploadArea.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    uploadArea.classList.remove('dragover');
+                    this.handleFiles(e.dataTransfer.files);
+                });
+
+                fileInput.addEventListener('change', (e) => {
+                    this.handleFiles(e.target.files);
+                });
+
+                convertBtn.addEventListener('click', () => {
+                    this.convertFiles();
+                });
+
+                clearBtn.addEventListener('click', () => {
+                    this.clearFiles();
+                });
+            }
+
+            async handleFiles(files) {
+                const zipFiles = Array.from(files).filter(file => 
+                    file.name.toLowerCase().endsWith('.zip')
+                );
+
+                if (zipFiles.length === 0) {
+                    this.showAlert('ZIPファイルを選択してください。', 'error');
+                    return;
+                }
+
+                // 賞与保険料算出内訳書のファイルかチェック
+                let validFiles = [];
+                for (const file of zipFiles) {
+                    if (await this.isShouyoHokenFile(file)) {
+                        validFiles.push(file);
+                    }
+                }
+
+                if (validFiles.length === 0) {
+                    this.showAlert('賞与保険料算出内訳書のZIPファイルが見つかりません。XMLファイル名に「賞与保険料算出内訳書」が含まれるファイルを選択してください。', 'error');
+                    return;
+                }
+
+                this.zipFiles = validFiles;
+                this.displayFileList();
+                document.getElementById('convertBtn').disabled = false;
+            }
+
+            async isShouyoHokenFile(zipFile) {
+                try {
+                    const arrayBuffer = await zipFile.arrayBuffer();
+                    const JSZip = await this.loadJSZip();
+                    const zip = await JSZip.loadAsync(arrayBuffer);
+
+                    // XMLファイルをチェック
+                    let foundShouyoFile = false;
+                    await Promise.all(Object.keys(zip.files).map(async (filename) => {
+                        if (filename.toLowerCase().endsWith('.xml') && !zip.files[filename].dir) {
+                            const content = await zip.files[filename].async('text');
+                            if (content.includes('ShouyoHokenRyouSanshutsuUchiwakeShoList') || 
+                                content.includes('賞与保険料算出内訳書') ||
+                                filename.includes('賞与保険料算出内訳書')) {
+                                foundShouyoFile = true;
+                            }
+                        }
+                    }));
+
+                    return foundShouyoFile;
+                } catch (error) {
+                    console.error('ファイルチェックエラー:', error);
+                    return false;
+                }
+            }
+
+            displayFileList() {
+                const fileList = document.getElementById('fileList');
+                fileList.innerHTML = '';
+
+                this.zipFiles.forEach((file, index) => {
+                    const fileItem = document.createElement('div');
+                    fileItem.className = 'file-item';
+                    fileItem.innerHTML = `
+                        <div class="file-info">
+                            <div class="file-icon">🗜️</div>
+                            <div class="file-details">
+                                <h4>${file.name}</h4>
+                                <p>サイズ: ${this.formatFileSize(file.size)}</p>
+                            </div>
+                        </div>
+                        <div class="status ready" id="status-${index}">準備完了</div>
+                    `;
+                    fileList.appendChild(fileItem);
+                });
+            }
+
+            async convertFiles() {
+                document.getElementById('convertBtn').disabled = true;
+                document.getElementById('progressBar').style.display = 'block';
+                document.getElementById('resultsSection').style.display = 'block';
+
+                const results = document.getElementById('results');
+                results.innerHTML = '';
+
+                for (let i = 0; i < this.zipFiles.length; i++) {
+                    await this.convertSingleFile(this.zipFiles[i], i);
+                    this.updateProgress((i + 1) / this.zipFiles.length * 100);
+                }
+
+                document.getElementById('convertBtn').disabled = false;
+                this.showAlert('すべてのファイルの変換が完了しました。', 'info');
+            }
+
+            async convertSingleFile(zipFile, index) {
+                const statusElement = document.getElementById(`status-${index}`);
+                statusElement.className = 'status converting';
+                statusElement.innerHTML = '<span class="loading"></span>変換中';
+
+                try {
+                    // ZIPファイルを読み込み
+                    const arrayBuffer = await zipFile.arrayBuffer();
+                    const JSZip = await this.loadJSZip();
+                    const zip = await JSZip.loadAsync(arrayBuffer);
+
+                    // XMLとXSLTファイルを検索（賞与保険料算出内訳書専用）
+                    const xmlFiles = [];
+                    const xsltFiles = [];
+
+                    zip.forEach((relativePath, file) => {
+                        if (!file.dir) {
+                            if (relativePath.toLowerCase().endsWith('.xml')) {
+                                xmlFiles.push({path: relativePath, file});
+                            } else if (relativePath.toLowerCase().endsWith('.xsl') || 
+                                     relativePath.toLowerCase().endsWith('.xslt')) {
+                                xsltFiles.push({path: relativePath, file});
+                            }
+                        }
+                    });
+
+                    if (xmlFiles.length === 0) {
+                        throw new Error('賞与保険料算出内訳書のXMLファイルが見つかりません');
+                    }
+
+                    if (xsltFiles.length === 0) {
+                        throw new Error('対応するXSLTファイルが見つかりません');
+                    }
+
+                    // 賞与保険料算出内訳書のXMLファイルのみを変換
+                    for (const xmlFileInfo of xmlFiles) {
+                        const xmlContent = await xmlFileInfo.file.async('text');
+                        
+                        // 賞与保険料算出内訳書かどうかチェック
+                        if (!xmlContent.includes('ShouyoHokenRyouSanshutsuUchiwakeShoList')) {
+                            console.log(`スキップ: ${xmlFileInfo.path} (賞与保険料算出内訳書ではありません)`);
+                            continue;
+                        }
+                        
+                        // 対応するXSLTファイルを見つける
+                        let xsltContent = '';
+                        const hrefMatch = xmlContent.match(/href="([^"]+\.xsl[^"]*)"/);
+                        
+                        if (hrefMatch) {
+                            const referencedXslt = xsltFiles.find(xslt => 
+                                xslt.path.includes(hrefMatch[1])
+                            );
+                            if (referencedXslt) {
+                                xsltContent = await referencedXslt.file.async('text');
+                            }
+                        }
+                        
+                        // 見つからない場合は最初のXSLTファイルを使用
+                        if (!xsltContent && xsltFiles.length > 0) {
+                            xsltContent = await xsltFiles[0].file.async('text');
+                        }
+
+                        const htmlContent = this.transformShouyoXMLToHTML(xmlContent, xsltContent);
+                        this.displayResult(xmlFileInfo.path, htmlContent, zipFile.name);
+                    }
+
+                    statusElement.className = 'status completed';
+                    statusElement.textContent = '完了';
+
+                } catch (error) {
+                    console.error('変換エラー:', error);
+                    statusElement.className = 'status error';
+                    statusElement.textContent = 'エラー';
+                    this.showAlert(`${zipFile.name}: ${error.message}`, 'error');
+                }
+            }
+
+            transformShouyoXMLToHTML(xmlString, xsltString) {
+                try {
+                    const parser = new DOMParser();
+                    const xmlDoc = parser.parseFromString(xmlString, 'text/xml');
+                    const xsltDoc = parser.parseFromString(xsltString, 'text/xml');
+
+                    // XSLTプロセッサを使用
+                    const processor = new XSLTProcessor();
+                    processor.importStylesheet(xsltDoc);
+                    
+                    const resultDoc = processor.transformToDocument(xmlDoc);
+                    const serializer = new XMLSerializer();
+                    
+                    return serializer.serializeToString(resultDoc);
+                } catch (error) {
+                    console.error('XSLT変換エラー:', error);
+                    // フォールバック: 賞与保険料算出内訳書専用HTML生成
+                    return this.generateShouyoHTML(xmlString);
+                }
+            }
+
+            generateShouyoHTML(xmlString) {
+                const parser = new DOMParser();
+                const xmlDoc = parser.parseFromString(xmlString, 'text/xml');
+                
+                // 賞与保険料算出内訳書専用のHTMLテンプレート
+                let html = `<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>賞与保険料算出内訳書</title>
+    <style>
+        body { 
+            font-family: 'Yu Mincho', serif; 
+            margin: 20px; 
+            word-break: break-all;
+        }
+        .container {
+            border: 2px solid #000;
+            padding: 20px;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        .title-section {
+            text-align: center;
+            margin: 20px 0;
+        }
+        .main-title {
+            font-size: 28px;
+            font-weight: bold;
+            margin: 10px 0;
+            letter-spacing: 0.3em;
+        }
+        .sub-titles {
+            display: flex;
+            justify-content: space-around;
+            margin: 20px 0;
+        }
+        .info-table {
+            border-collapse: collapse;
+            width: 100%;
+            margin: 20px 0;
+            font-size: 12px;
+        }
+        .info-table td {
+            border: 1px solid #000;
+            padding: 5px;
+            text-align: left;
+        }
+        .main-table {
+            border-collapse: collapse;
+            width: 100%;
+            margin: 20px 0;
+            font-size: 10px;
+        }
+        .main-table th, .main-table td {
+            border: 1px solid #000;
+            padding: 4px;
+            text-align: center;
+        }
+        .main-table th {
+            background-color: #f0f0f0;
+            font-weight: bold;
+        }
+        .name-col { text-align: left !important; }
+        .amount-col { text-align: right !important; }
+    </style>
+</head>
+<body>
+    <div class="container">
+`;
+
+                // XMLデータを解析
+                const shouyoList = xmlDoc.querySelector('shouyoList');
+                if (shouyoList) {
+                    const header = shouyoList.querySelector('header');
+                    
+                    // タイトル部分
+                    html += `
+                        <div class="title-section">
+                            <div class="sub-titles">
+                                <div>健康保険</div>
+                                <div class="main-title">賞与保険料算出内訳書</div>
+                                <div>厚生年金保険</div>
+                            </div>`;
+                    
+                    if (header) {
+                        const year = header.querySelector('nouhuMokutekiYearGengou')?.textContent + 
+                                   header.querySelector('nouhuMokutekiYear')?.textContent;
+                        const month = header.querySelector('nouhuMokutekiMonth')?.textContent;
+                        const office = header.querySelector('nenkinJimusho2')?.textContent;
+                        
+                        html += `
+                            <div style="text-align: right; margin: 10px 0;">
+                                ${year}年${month}月分　${office}
+                            </div>
+                        </div>`;
+                        
+                        // ヘッダー情報テーブル
+                        html += `
+                            <table class="info-table">
+                                <tr>
+                                    <td><strong>事業所名</strong></td>
+                                    <td colspan="3">${header.querySelector('jigyoshoName')?.textContent || ''}</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>事業所整理記号</strong></td>
+                                    <td>${header.querySelector('jigyoshoSeiriKigo')?.textContent || ''}</td>
+                                    <td><strong>事業所番号</strong></td>
+                                    <td>${header.querySelector('jigyoshoNum')?.textContent || ''}</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>人員</strong></td>
+                                    <td>${header.querySelector('jinInNum')?.textContent || ''}</td>
+                                    <td colspan="2"></td>
+                                </tr>
+                            </table>`;
+                    }
+                    
+                    // メインテーブル
+                    html += `
+                        <table class="main-table">
+                            <thead>
+                                <tr>
+                                    <th rowspan="2">処理年月日</th>
+                                    <th rowspan="2">整理番号</th>
+                                    <th rowspan="2">表示</th>
+                                    <th rowspan="2">氏名</th>
+                                    <th rowspan="2">発生年月日<br><small>(賞与支払年月日)</small></th>
+                                    <th colspan="2">標準賞与額</th>
+                                    <th colspan="2">健康保険料</th>
+                                    <th colspan="2">厚生年金保険料</th>
+                                </tr>
+                                <tr>
+                                    <th>健保<br><small>[千円]</small></th>
+                                    <th>厚年<br><small>[千円]</small></th>
+                                    <th>本月額<br><small>[円]</small></th>
+                                    <th>前月以前額<br><small>[円]</small></th>
+                                    <th>本月額<br><small>[円]</small></th>
+                                    <th>前月以前額<br><small>[円]</small></th>
+                                </tr>
+                            </thead>
+                            <tbody>`;
+                    
+                    // 内訳データ
+                    const uchiwakeList = shouyoList.querySelectorAll('uchiwake');
+                    uchiwakeList.forEach(uchiwake => {
+                        const shimei = uchiwake.querySelector('shimei')?.textContent || '';
+                        const shoriYMD = uchiwake.querySelector('shoriYMD')?.textContent || '';
+                        const seiriNum = uchiwake.querySelector('seiriNum')?.textContent || '';
+                        const hyouji = uchiwake.querySelector('hyouji')?.textContent || '';
+                        const hasseiYMD = uchiwake.querySelector('hasseiYMD')?.textContent || '';
+                        const getsuGakuKenpo = uchiwake.querySelector('getsuGakuKenpo')?.textContent || '';
+                        const getsuGakuKounen = uchiwake.querySelector('getsuGakuKounen')?.textContent || '';
+                        const kenpoHon = uchiwake.querySelector('kenKouHokenRyou hongetsuGaku')?.textContent || '';
+                        const kenpoZen = uchiwake.querySelector('kenKouHokenRyou zengetsuIzenKingaku')?.textContent || '';
+                        const nenkinHon = uchiwake.querySelector('kouseiNenkinHokenRyou hongetsuGaku')?.textContent || '';
+                        const nenkinZen = uchiwake.querySelector('kouseiNenkinHokenRyou zengetsuIzenKingaku')?.textContent || '';
+                        
+                        html += `
+                            <tr>
+                                <td>${shoriYMD}</td>
+                                <td>${seiriNum}</td>
+                                <td>${hyouji}</td>
+                                <td class="name-col">${shimei}</td>
+                                <td>${hasseiYMD}</td>
+                                <td>${getsuGakuKenpo}</td>
+                                <td>${getsuGakuKounen}</td>
+                                <td class="amount-col">${kenpoHon ? Number(kenpoHon).toLocaleString() : ''}</td>
+                                <td class="amount-col">${kenpoZen ? Number(kenpoZen).toLocaleString() : ''}</td>
+                                <td class="amount-col">${nenkinHon ? Number(nenkinHon).toLocaleString() : ''}</td>
+                                <td class="amount-col">${nenkinZen ? Number(nenkinZen).toLocaleString() : ''}</td>
+                            </tr>`;
+                    });
+                    
+                    html += `
+                            </tbody>
+                        </table>`;
+                }
+
+                html += `
+                    </div>
+                </body>
+                </html>`;
+                
+                return html;
+            }
+
+            displayResult(fileName, htmlContent, zipName) {
+                const results = document.getElementById('results');
+                const resultItem = document.createElement('div');
+                resultItem.className = 'result-item';
+
+                const resultId = 'result-' + Date.now() + Math.random().toString(36).substr(2, 9);
+                
+                resultItem.innerHTML = `
+                    <div class="result-header">
+                        <div class="result-title">${fileName} (from ${zipName})</div>
+                        <div class="result-buttons">
+                            <button class="btn" onclick="window.converter.openPreview('${resultId}')">プレビュー表示</button>
+                            <button class="btn" onclick="window.converter.printHTML('${resultId}')">印刷</button>
+                        </div>
+                    </div>
+                    <div class="preview-container" id="preview-${resultId}" style="display: none;">
+                        <iframe class="preview-frame" id="${resultId}" srcdoc="${this.escapeHtml(htmlContent)}"></iframe>
+                    </div>
+                `;
+
+                results.appendChild(resultItem);
+
+                // プレビュー表示機能を追加
+                window.converter = this; // グローバルアクセス用
+            }
+
+            openPreview(resultId) {
+                const previewContainer = document.getElementById(`preview-${resultId}`);
+                const button = previewContainer.previousElementSibling.querySelector('button');
+                
+                if (previewContainer.style.display === 'none') {
+                    previewContainer.style.display = 'block';
+                    button.textContent = 'プレビューを閉じる';
+                    
+                    // スムーズスクロール
+                    previewContainer.scrollIntoView({ 
+                        behavior: 'smooth', 
+                        block: 'start' 
+                    });
+                } else {
+                    previewContainer.style.display = 'none';
+                    button.textContent = 'プレビュー表示';
+                }
+            }
+
+            printHTML(resultId) {
+                const iframe = document.getElementById(resultId);
+                
+                if (!iframe) {
+                    this.showAlert('プレビューが見つかりません。', 'error');
+                    return;
+                }
+
+                try {
+                    // iframeの内容を取得
+                    const htmlContent = iframe.getAttribute('srcdoc');
+                    
+                    if (!htmlContent) {
+                        this.showAlert('印刷するコンテンツが見つかりません。', 'error');
+                        return;
+                    }
+
+                    // 印刷用の新しいウィンドウを開く
+                    const printWindow = window.open('', '_blank');
+                    
+                    // 印刷用にHTMLを最適化
+                    const optimizedHTML = this.optimizeForPrint(htmlContent);
+                    
+                    printWindow.document.write(optimizedHTML);
+                    printWindow.document.close();
+                    
+                    // ページが読み込まれるのを待ってから印刷
+                    printWindow.onload = function() {
+                        setTimeout(() => {
+                            printWindow.print();
+                            
+                            // 印刷ダイアログが閉じられた後にウィンドウを閉じる
+                            printWindow.onafterprint = function() {
+                                printWindow.close();
+                            };
+                            
+                            // Safariなどでonafterprintが動作しない場合のフォールバック
+                            setTimeout(() => {
+                                if (!printWindow.closed) {
+                                    printWindow.close();
+                                }
+                            }, 1000);
+                        }, 500);
+                    };
+
+                    this.showAlert('印刷ダイアログを開いています...', 'info');
+
+                } catch (error) {
+                    console.error('印刷エラー:', error);
+                    this.showAlert('印刷中にエラーが発生しました。', 'error');
+                }
+            }
+
+            optimizeForPrint(htmlContent) {
+                // HTMLコンテンツをデコード
+                const decodedHTML = this.unescapeHtml(htmlContent);
+                
+                // 賞与保険料算出内訳書専用の印刷スタイル（A4横、横幅調整）
+                const printStyles = `
+                    <style type="text/css">
+                        @media print {
+                            body {
+                                margin: 0;
+                                padding: 6mm;
+                                font-family: "Yu Mincho", serif;
+                                font-size: 7pt;
+                                line-height: 1.0;
+                                color: #000;
+                                background: white;
+                                word-break: break-all;
+                                overflow: hidden;
+                            }
+                            
+                            /* A4横向きページ設定（横幅を確実に収める） */
+                            @page {
+                                size: A4 landscape;
+                                margin: 6mm 4mm;
+                            }
+                            
+                            /* 外枠の調整 */
+                            .container, div {
+                                border: 1px solid #000 !important;
+                                width: 100% !important;
+                                max-width: 287mm !important;
+                                height: auto !important;
+                                margin: 0 !important;
+                                padding: 2mm !important;
+                                box-sizing: border-box;
+                                page-break-inside: avoid;
+                                overflow: hidden;
+                            }
+                            
+                            /* ページ番号とお知らせエリア */
+                            table.Rterritory {
+                                width: 100% !important;
+                                max-width: 100% !important;
+                                margin: 0 0 2mm 0 !important;
+                                font-size: 6pt;
+                                page-break-inside: avoid;
+                                table-layout: fixed;
+                            }
+                            
+                            .oshirase {
+                                font-size: 4pt !important;
+                                line-height: 5pt !important;
+                                height: 10mm !important;
+                                padding: 1mm !important;
+                                border: 1px solid #000 !important;
+                                overflow: hidden;
+                                word-wrap: break-word;
+                                page-break-inside: avoid;
+                            }
+                            
+                            /* タイトル部分 */
+                            table.title {
+                                width: 100% !important;
+                                max-width: 100% !important;
+                                margin: 2mm 0 !important;
+                                font-size: 10pt;
+                                page-break-inside: avoid;
+                                table-layout: fixed;
+                            }
+                            
+                            .mainTitle {
+                                font-size: 16pt !important;
+                                font-weight: bold !important;
+                                text-align: center !important;
+                                vertical-align: middle !important;
+                            }
+                            
+                            .txtJust {
+                                display: flex !important;
+                                justify-content: space-between !important;
+                                font-size: 8pt !important;
+                            }
+                            
+                            /* ヘッダー情報テーブル */
+                            table.header {
+                                width: 100% !important;
+                                max-width: 100% !important;
+                                margin: 1mm 0 2mm 0 !important;
+                                font-size: 6pt;
+                                border-collapse: collapse !important;
+                                page-break-inside: avoid;
+                                table-layout: fixed;
+                            }
+                            
+                            table.header td {
+                                border: none !important;
+                                padding: 0.3px !important;
+                                height: 2.5mm;
+                                vertical-align: middle;
+                                overflow: visible !important;
+                                white-space: nowrap;
+                                text-overflow: clip !important;
+                            }
+                            
+                            /* ヘッダー列幅の調整 */
+                            table.header colgroup col:nth-child(1) { width: 2% !important; }
+                            table.header colgroup col:nth-child(2) { width: 2% !important; }
+                            table.header colgroup col:nth-child(3) { width: 2% !important; }
+                            table.header colgroup col:nth-child(4) { width: 2% !important; }
+                            table.header colgroup col:nth-child(5) { width: 2% !important; }
+                            table.header colgroup col:nth-child(6) { width: 2% !important; }
+                            table.header colgroup col:nth-child(7) { width: 2% !important; }
+                            table.header colgroup col:nth-child(8) { width: 2% !important; }
+                            table.header colgroup col:nth-child(9) { width: 3% !important; }
+                            table.header colgroup col:nth-child(10) { width: 2% !important; }
+                            table.header colgroup col:nth-child(11) { width: 2% !important; }
+                            table.header colgroup col:nth-child(12) { width: 2% !important; }
+                            table.header colgroup col:nth-child(13) { width: 2% !important; }
+                            table.header colgroup col:nth-child(14) { width: 2% !important; }
+                            table.header colgroup col:nth-child(15) { width: 2% !important; }
+                            table.header colgroup col:nth-child(16) { width: 2% !important; }
+                            table.header colgroup col:nth-child(17) { width: 2% !important; }
+                            table.header colgroup col:nth-child(18) { width: 2% !important; }
+                            table.header colgroup col:nth-child(19) { width: 2% !important; }
+                            table.header colgroup col:nth-child(20) { width: 2% !important; }
+                            table.header colgroup col:nth-child(21) { width: 25% !important; }
+                            table.header colgroup col:nth-child(22) { width: 25% !important; }
+                            table.header colgroup col:nth-child(23) { width: 25% !important; }
+                            
+                            /* メインの内訳テーブル（横幅に確実に収める） */
+                            table.uchiwake {
+                                width: 100% !important;
+                                max-width: 100% !important;
+                                margin: 0 !important;
+                                border-collapse: collapse !important;
+                                font-size: 5pt;
+                                table-layout: fixed;
+                                page-break-inside: auto;
+                            }
+                            
+                            table.uchiwake td {
+                                border: 0.5px solid #000 !important;
+                                padding: 0.5mm !important;
+                                vertical-align: middle !important;
+                                text-align: center !important;
+                                word-wrap: break-word;
+                                overflow: hidden;
+                                height: 4mm !important;
+                                white-space: nowrap;
+                                text-overflow: ellipsis;
+                            }
+                            
+                            /* 列幅の調整（横幅285mm基準で計算） */
+                            table.uchiwake colgroup col:nth-child(1) { width: 9.5% !important; } /* 処理年月日 */
+                            table.uchiwake colgroup col:nth-child(2) { width: 6.5% !important; } /* 整理番号 */
+                            table.uchiwake colgroup col:nth-child(3) { width: 4.5% !important; } /* 表示 */
+                            table.uchiwake colgroup col:nth-child(4) { width: 16% !important; }  /* 氏名 */
+                            table.uchiwake colgroup col:nth-child(5) { width: 9.5% !important; } /* 発生年月日 */
+                            table.uchiwake colgroup col:nth-child(6) { width: 6.5% !important; } /* 標準賞与額(健保) */
+                            table.uchiwake colgroup col:nth-child(7) { width: 6.5% !important; } /* 標準賞与額(厚年) */
+                            table.uchiwake colgroup col:nth-child(8) { width: 10.25% !important; } /* 健康保険料(本月額) */
+                            table.uchiwake colgroup col:nth-child(9) { width: 10.25% !important; } /* 健康保険料(前月以前額) */
+                            table.uchiwake colgroup col:nth-child(10) { width: 10.25% !important; } /* 厚生年金保険料(本月額) */
+                            table.uchiwake colgroup col:nth-child(11) { width: 10.25% !important; } /* 厚生年金保険料(前月以前額) */
+                            
+                            /* ヘッダー行のスタイル */
+                            .midashiS_C {
+                                background-color: #f0f0f0 !important;
+                                font-weight: bold !important;
+                                font-size: 4.5pt !important;
+                                text-align: center !important;
+                                padding: 0.5mm !important;
+                                height: 5mm !important;
+                                vertical-align: middle !important;
+                                border: 0.5px solid #000 !important;
+                                page-break-inside: avoid;
+                                overflow: hidden;
+                                white-space: nowrap;
+                            }
+                            
+                            /* 氏名列は左寄せ */
+                            table.uchiwake td:nth-child(4) {
+                                text-align: left !important;
+                                padding-left: 1mm !important;
+                                white-space: nowrap;
+                                overflow: hidden;
+                                text-overflow: ellipsis;
+                            }
+                            
+                            /* 金額列は右寄せ */
+                            table.uchiwake td:nth-child(8),
+                            table.uchiwake td:nth-child(9),
+                            table.uchiwake td:nth-child(10),
+                            table.uchiwake td:nth-child(11) {
+                                text-align: right !important;
+                                padding-right: 1mm !important;
+                                white-space: nowrap;
+                                overflow: hidden;
+                            }
+                            
+                            /* 小さいフォント */
+                            font.small {
+                                font-size: 3.5pt !important;
+                            }
+                            
+                            /* 改ページ制御 */
+                            .page-break-before {
+                                page-break-before: always !important;
+                            }
+                            
+                            .page-break-inside-avoid {
+                                page-break-inside: avoid !important;
+                            }
+                            
+                            /* 1ページ目の要素の高さ制限 */
+                            .first-page {
+                                max-height: 180mm !important;
+                                overflow: visible;
+                            }
+                            
+                            /* ヘッダー部分を圧縮 */
+                            table.title, table.header {
+                                margin-top: 0.5mm !important;
+                                margin-bottom: 1mm !important;
+                            }
+                            
+                            /* 不要な要素を非表示 */
+                            .no-print {
+                                display: none !important;
+                            }
+                            
+                            /* 裏面（みかた）のスタイル - 1ページに収める（文字サイズ改善） */
+                            .ura {
+                                page-break-before: always !important;
+                                font-size: 5.5pt !important;
+                                line-height: 1.1 !important;
+                                padding: 2mm !important;
+                                height: auto !important;
+                                max-height: 185mm !important;
+                                overflow: hidden !important;
+                            }
+                            
+                            table.ura {
+                                width: 100% !important;
+                                max-width: 100% !important;
+                                border-collapse: collapse !important;
+                                font-size: 5.5pt !important;
+                                table-layout: fixed;
+                                margin: 0 !important;
+                                page-break-inside: avoid !important;
+                            }
+                            
+                            table.ura.title {
+                                margin-bottom: 1.5mm !important;
+                                font-size: 6pt !important;
+                            }
+                            
+                            table.ura td {
+                                border: 0.4px solid #000 !important;
+                                padding: 0.8mm !important;
+                                vertical-align: top !important;
+                                text-align: left !important;
+                                line-height: 1.2 !important;
+                                overflow: hidden !important;
+                                word-wrap: break-word !important;
+                                height: auto !important;
+                            }
+                            
+                            /* 裏面の項目別スタイル調整 */
+                            .ura .normalM_L {
+                                font-size: 5.5pt !important;
+                                line-height: 1.2 !important;
+                                padding: 0.5mm !important;
+                            }
+                            
+                            /* 裏面のテーブル内テーブルの調整 */
+                            .ura table table {
+                                margin: 0.5mm 0 !important;
+                                width: 100% !important;
+                                font-size: 5pt !important;
+                            }
+                            
+                            .ura table table td {
+                                padding: 0.6mm !important;
+                                border: 0.4px solid #000 !important;
+                                height: auto !important;
+                                line-height: 1.2 !important;
+                                vertical-align: top !important;
+                                font-size: 5pt !important;
+                            }
+                            
+                            /* 裏面の列幅調整 */
+                            .ura table table colgroup col:nth-child(1) { width: 22% !important; }
+                            .ura table table colgroup col:nth-child(2) { width: 78% !important; }
+                            
+                            /* 裏面のタイトル部分 */
+                            .ura .mainTitle {
+                                font-size: 10pt !important;
+                                line-height: 1.1 !important;
+                                margin: 0 !important;
+                                font-weight: bold !important;
+                            }
+                            
+                            /* 裏面の各セクションの調整 */
+                            .ura tr:first-child td {
+                                padding-top: 1mm !important;
+                                padding-bottom: 0.8mm !important;
+                            }
+                            
+                            .ura tr:last-child td {
+                                padding-bottom: 1mm !important;
+                            }
+                            
+                            /* 改ページを防ぐ */
+                            .ura * {
+                                page-break-inside: avoid !important;
+                                break-inside: avoid !important;
+                            }
+                            
+                            /* 裏面全体のコンテナ調整 */
+                            div.ura {
+                                width: 100% !important;
+                                max-width: 285mm !important;
+                                padding: 1.5mm !important;
+                                margin: 0 !important;
+                                box-sizing: border-box !important;
+                                overflow: hidden !important;
+                                page-break-after: auto !important;
+                            }
+                            
+                            /* 裏面の番号付きリストの調整 */
+                            .ura td:contains("１．"), 
+                            .ura td:contains("２．"), 
+                            .ura td:contains("３．") {
+                                font-weight: bold !important;
+                                background-color: #f8f8f8 !important;
+                            }
+                            
+                            /* 日本の公文書特有のスタイル */
+                            .normalM_C {
+                                font-size: 5pt !important;
+                                height: 4mm !important;
+                                vertical-align: middle !important;
+                            }
+                            
+                            /* テキスト配置の調整 */
+                            .txtJust span {
+                                display: inline-block;
+                            }
+                            
+                            /* 明細行の高さを固定して収まりを良くする */
+                            table.uchiwake tbody tr {
+                                height: 4mm !important;
+                            }
+                            
+                            /* 全体的な横幅制御 */
+                            * {
+                                max-width: 100% !important;
+                                box-sizing: border-box !important;
+                            }
+                            
+                            /* ページごとの調整 */
+                            @page :first {
+                                margin-bottom: 4mm;
+                            }
+                            
+                            @page :left {
+                                margin-right: 6mm;
+                            }
+                            
+                            @page :right {
+                                margin-left: 6mm;
+                            }
+                        }
+                        
+                        /* 画面表示用（プレビュー時） */
+                        @media screen {
+                            .print-preview {
+                                max-width: 285mm;  /* A4横幅より少し小さく */
+                                margin: 0 auto;
+                                padding: 6mm;
+                                background: white;
+                                box-shadow: 0 0 10px rgba(0,0,0,0.1);
+                                transform: scale(0.55);
+                                transform-origin: top center;
+                                overflow: hidden;
+                            }
+                        }
+                    </style>
+                `;
+                
+                // HTMLにスタイルを挿入し、印刷プレビュー用のクラスを追加
+                let optimizedHTML = decodedHTML;
+                
+                if (optimizedHTML.includes('</head>')) {
+                    optimizedHTML = optimizedHTML.replace('</head>', printStyles + '</head>');
+                } else if (optimizedHTML.includes('<html>')) {
+                    optimizedHTML = optimizedHTML.replace('<html>', '<html><head>' + printStyles + '</head>');
+                } else {
+                    optimizedHTML = `<!DOCTYPE html><html><head>${printStyles}</head><body>${optimizedHTML}</body></html>`;
+                }
+                
+                // body要素に印刷プレビュー用のクラスを追加
+                optimizedHTML = optimizedHTML.replace('<body', '<body class="print-preview"');
+                
+                return optimizedHTML;
+            }
+
+            unescapeHtml(safe) {
+                return safe
+                    .replace(/&amp;/g, "&")
+                    .replace(/&lt;/g, "<")
+                    .replace(/&gt;/g, ">")
+                    .replace(/&quot;/g, '"')
+                    .replace(/&#039;/g, "'");
+            }
+
+            downloadHTML(htmlContent, fileName) {
+                const blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = fileName.replace('.xml', '.html');
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            }
+
+            escapeHtml(unsafe) {
+                return unsafe
+                    .replace(/&/g, "&amp;")
+                    .replace(/</g, "&lt;")
+                    .replace(/>/g, "&gt;")
+                    .replace(/"/g, "&quot;")
+                    .replace(/'/g, "&#039;");
+            }
+
+            updateProgress(percentage) {
+                document.getElementById('progressFill').style.width = percentage + '%';
+            }
+
+            clearFiles() {
+                this.zipFiles = [];
+                document.getElementById('fileList').innerHTML = '';
+                document.getElementById('results').innerHTML = '';
+                document.getElementById('fileInput').value = '';
+                document.getElementById('convertBtn').disabled = true;
+                document.getElementById('progressBar').style.display = 'none';
+                document.getElementById('resultsSection').style.display = 'none';
+                document.getElementById('progressFill').style.width = '0%';
+            }
+
+            formatFileSize(bytes) {
+                if (bytes === 0) return '0 Bytes';
+                const k = 1024;
+                const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+                const i = Math.floor(Math.log(bytes) / Math.log(k));
+                return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+            }
+
+            showAlert(message, type) {
+                const existingAlert = document.querySelector('.alert');
+                if (existingAlert) {
+                    existingAlert.remove();
+                }
+
+                const alert = document.createElement('div');
+                alert.className = `alert ${type}`;
+                alert.textContent = message;
+
+                const mainContent = document.querySelector('.main-content');
+                mainContent.insertBefore(alert, mainContent.firstChild);
+
+                setTimeout(() => alert.remove(), 5000);
+            }
+
+            async loadJSZip() {
+                if (window.JSZip) return window.JSZip;
+                
+                return new Promise((resolve, reject) => {
+                    const script = document.createElement('script');
+                    script.src = 'https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js';
+                    script.onload = () => resolve(window.JSZip);
+                    script.onerror = reject;
+                    document.head.appendChild(script);
+                });
+            }
+        }
+
+        // アプリケーション初期化
+        document.addEventListener('DOMContentLoaded', () => {
+            new XMLToHTMLConverter();
+        });
+    </script>
+</body>
+</html>
